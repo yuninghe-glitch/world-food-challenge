@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>NYC World Food Challenge</title>
+<style>
+body {margin:0;font-family:-apple-system,BlinkMacSystemFont,"Helvetica Neue",sans-serif;
+background:linear-gradient(135deg,#fff7f9,#fdecef);
+display:flex;align-items:center;justify-content:center;height:100vh;user-select:none;}
+.card {background:white;border-radius:26px;padding:28px 20px;width:95%;max-width:440px;text-align:center;box-shadow:0 20px 50px rgba(0,0,0,0.08);overflow-y:auto;max-height:95vh;}
+h1{font-size:18px;margin-bottom:12px;}
+.lang{font-size:12px;color:#999;text-align:right;cursor:pointer;}
+.flag{font-size:44px;margin:10px 0 4px;}
+.country{font-size:36px;font-weight:800;}
+.cn{font-size:18px;color:#666;margin-bottom:14px;}
+.input-log{margin:6px 0;font-size:14px;padding:6px 8px;width:100%;border-radius:8px;border:1px solid #ddd;}
+button{width:100%;padding:14px;font-size:16px;border-radius:16px;border:none;font-weight:700;cursor:pointer;margin-bottom:10px;}
+.primary{background:#ff4f87;color:white;}
+.secondary{background:#f3f3f3;color:#333;}
+.meta{margin-top:10px;font-size:13px;color:#999;display:flex;justify-content:space-between;}
+.reset{margin-top:14px;font-size:12px;color:#bbb;text-decoration:underline;cursor:pointer;}
+.caption{margin-top:10px;font-size:14px;color:#333;background:#fff0f4;padding:10px;border-radius:12px;white-space:pre-line;}
+#log{margin-top:16px;text-align:left;max-height:220px;overflow-y:auto;padding:6px;background:#fff5f8;border-radius:12px;}
+.log-entry{border-bottom:1px solid #eee;padding:6px 0;font-size:13px;}
+.log-entry:last-child{border-bottom:none;}
+.log-entry a{color:#ff4f87;text-decoration:underline;}
+.share-card{margin-top:12px;padding:12px;border-radius:14px;background:#ffe6f0;text-align:center;}
+.share-card button{margin-top:6px;width:100%;font-size:14px;}
+</style>
+</head>
+<body>
+<div class="card">
+<div class="lang" onclick="toggleLang()">🌐 EN / 中文</div>
+<h1 id="title">NYC World Food Challenge</h1>
+
+<div class="flag" id="flag">🎲</div>
+<div class="country" id="country">Tap to start</div>
+<div class="cn" id="subtitle">One country per week</div>
+
+<input type="text" id="restaurantName" placeholder="Restaurant Name / 餐厅名称" class="input-log"/>
+<input type="text" id="restaurantAddr" placeholder="Address / 地址" class="input-log"/>
+<button class="primary" onclick="generateCountry()" id="genBtn">Generate Country</button>
+<button class="secondary" onclick="completeCountry()" id="doneBtn" disabled>Mark as Completed</button>
+<button class="secondary" onclick="undoLast()" id="undoBtn">Undo Last</button>
+
+<div class="meta">
+  <div id="week">Week 0</div>
+  <div id="progress">0 / 195</div>
+</div>
+
+<div class="caption" id="caption">Your bilingual caption will appear here.</div>
+
+<div id="log"></div>
+
+<div class="share-card">
+  <button onclick="generateShareCard()">Generate Share Card</button>
+  <div id="shareCardPreview" style="margin-top:8px;"></div>
+</div>
+
+<div class="reset" onclick="resetAll()" id="resetText">Reset Challenge</div>
+</div>
+
+<script>
+/* LANGUAGE */
+let lang=localStorage.getItem("lang")||"en";
+const text={en:{title:"NYC World Food Challenge",subtitle:"One country per week",gen:"Generate Country",done:"Mark as Completed",reset:"Reset Challenge",undo:"Undo Last"},zh:{title:"纽约吃遍全世界挑战",subtitle:"每周一个国家",gen:"随机生成国家",done:"完成并打卡",reset:"重置挑战",undo:"撤销上次"}};
+function applyLang(){document.getElementById("title").textContent=text[lang].title;document.getElementById("subtitle").textContent=text[lang].subtitle;document.getElementById("genBtn").textContent=text[lang].gen;document.getElementById("doneBtn").textContent=text[lang].done;document.getElementById("undoBtn").textContent=text[lang].undo;document.getElementById("resetText").textContent=text[lang].reset;}
+function toggleLang(){lang=lang==="en"?"zh":"en";localStorage.setItem("lang",lang);applyLang();}
+
+/* COUNTRIES 195 */
+const countries=[["Afghanistan","阿富汗","🇦🇫"],["Albania","阿尔巴尼亚","🇦🇱"],["Algeria","阿尔及利亚","🇩🇿"],["Andorra","安道尔","🇦🇩"],["Angola","安哥拉","🇦🇴"],["Antigua and Barbuda","安提瓜和巴布达","🇦🇬"],["Argentina","阿根廷","🇦🇷"],["Armenia","亚美尼亚","🇦🇲"],["Australia","澳大利亚","🇦🇺"],["Austria","奥地利","🇦🇹"],["Azerbaijan","阿塞拜疆","🇦🇿"],["Bahamas","巴哈马","🇧🇸"],["Bahrain","巴林","🇧🇭"],["Bangladesh","孟加拉国","🇧🇩"],["Barbados","巴巴多斯","🇧🇧"],["Belarus","白俄罗斯","🇧🇾"],["Belgium","比利时","🇧🇪"],["Belize","伯利兹","🇧🇿"],["Benin","贝宁","🇧🇯"],["Bhutan","不丹","🇧🇹"],["Bolivia","玻利维亚","🇧🇴"],["Bosnia and Herzegovina","波斯尼亚和黑塞哥维那","🇧🇦"],["Botswana","博茨瓦纳","🇧🇼"],["Brazil","巴西","🇧🇷"],["Brunei","文莱","🇧🇳"],["Bulgaria","保加利亚","🇧🇬"],["Burkina Faso","布基纳法索","🇧🇫"],["Burundi","布隆迪","🇧🇮"],["Cabo Verde","佛得角","🇨🇻"],["Cambodia","柬埔寨","🇰🇭"],["Cameroon","喀麦隆","🇨🇲"],["Canada","加拿大","🇨🇦"],["Central African Republic","中非共和国","🇨🇫"],["Chad","乍得","🇹🇩"],["Chile","智利","🇨🇱"],["China","中国","🇨🇳"],["Colombia","哥伦比亚","🇨🇴"],["Comoros","科摩罗","🇰🇲"],["Congo (Congo-Brazzaville)","刚果（布）","🇨🇬"],["Costa Rica","哥斯达黎加","🇨🇷"],["Croatia","克罗地亚","🇭🇷"],["Cuba","古巴","🇨🇺"],["Cyprus","塞浦路斯","🇨🇾"],["Czechia","捷克","🇨🇿"],["Denmark","丹麦","🇩🇰"],["Djibouti","吉布提","🇩🇯"],["Dominica","多米尼克","🇩🇲"],["Dominican Republic","多米尼加共和国","🇩🇴"],["Ecuador","厄瓜多尔","🇪🇨"],["Egypt","埃及","🇪🇬"],["El Salvador","萨尔瓦多","🇸🇻"],["Equatorial Guinea","赤道几内亚","🇬🇶"],["Eritrea","厄立特里亚","🇪🇷"],["Estonia","爱沙尼亚","🇪🇪"],["Eswatini","斯威士兰","🇸🇿"],["Ethiopia","埃塞俄比亚","🇪🇹"],["Fiji","斐济","🇫🇯"],["Finland","芬兰","🇫🇮"],["France","法国","🇫🇷"],["Gabon","加蓬","🇬🇦"],["Gambia","冈比亚","🇬🇲"],["Georgia","格鲁吉亚","🇬🇪"],["Germany","德国","🇩🇪"],["Ghana","加纳","🇬🇭"],["Greece","希腊","🇬🇷"],["Grenada","格林纳达","🇬🇩"],["Guatemala","危地马拉","🇬🇹"],["Guinea","几内亚","🇬🇳"],["Guinea-Bissau","几内亚比绍","🇬🇼"],["Guyana","圭亚那","🇬🇾"],["Haiti","海地","🇭🇹"],["Honduras","洪都拉斯","🇭🇳"],["Hungary","匈牙利","🇭🇺"],["Iceland","冰岛","🇮🇸"],["India","印度","🇮🇳"],["Indonesia","印度尼西亚","🇮🇩"],["Iran","伊朗","🇮🇷"],["Iraq","伊拉克","🇮🇶"],["Ireland","爱尔兰","🇮🇪"],["Israel","以色列","🇮🇱"],["Italy","意大利","🇮🇹"],["Jamaica","牙买加","🇯🇲"],["Japan","日本","🇯🇵"],["Jordan","约旦","🇯🇴"],["Kazakhstan","哈萨克斯坦","🇰🇿"],["Kenya","肯尼亚","🇰🇪"],["Kiribati","基里巴斯","🇰🇮"],["Kuwait","科威特","🇰🇼"],["Kyrgyzstan","吉尔吉斯斯坦","🇰🇬"],["Laos","老挝","🇱🇦"],["Latvia","拉脱维亚","🇱🇻"],["Lebanon","黎巴嫩","🇱🇧"],["Lesotho","莱索托","🇱🇸"],["Liberia","利比里亚","🇱🇷"],["Libya","利比亚","🇱🇾"],["Liechtenstein","列支敦士登","🇱🇮"],["Lithuania","立陶宛","🇱🇹"],["Luxembourg","卢森堡","🇱🇺"],["Madagascar","马达加斯加","🇲🇬"],["Malawi","马拉维","🇲🇼"],["Malaysia","马来西亚","🇲🇾"],["Maldives","马尔代夫","🇲🇻"],["Mali","马里","🇲🇱"],["Malta","马耳他","🇲🇹"],["Marshall Islands","马绍尔群岛","🇲🇭"],["Mauritania","毛里塔尼亚","🇲🇷"],["Mauritius","毛里求斯","🇲🇺"],["Mexico","墨西哥","🇲🇽"],["Micronesia","密克罗尼西亚","🇫🇲"],["Moldova","摩尔多瓦","🇲🇩"],["Monaco","摩纳哥","🇲🇨"],["Mongolia","蒙古","🇲🇳"],["Montenegro","黑山","🇲🇪"],["Morocco","摩洛哥","🇲🇦"],["Mozambique","莫桑比克","🇲🇿"],["Myanmar","缅甸","🇲🇲"],["Namibia","纳米比亚","🇳🇦"],["Nauru","瑙鲁","🇳🇷"],["Nepal","尼泊尔","🇳🇵"],["Netherlands","荷兰","🇳🇱"],["New Zealand","新西兰","🇳🇿"],["Nicaragua","尼加拉瓜","🇳🇮"],["Niger","尼日尔","🇳🇪"],["Nigeria","尼日利亚","🇳🇬"],["North Macedonia","北马其顿","🇲🇰"],["Norway","挪威","🇳🇴"],["Oman","阿曼","🇴🇲"],["Pakistan","巴基斯坦","🇵🇰"],["Palau","帕劳","🇵🇼"],["Palestine","巴勒斯坦","🇵🇸"],["Panama","巴拿马","🇵🇦"],["Papua New Guinea","巴布亚新几内亚","🇵🇬"],["Paraguay","巴拉圭","🇵🇾"],["Peru","秘鲁","🇵🇪"],["Philippines","菲律宾","🇵🇭"],["Poland","波兰","🇵🇱"],["Portugal","葡萄牙","🇵🇹"],["Qatar","卡塔尔","🇶🇦"],["Romania","罗马尼亚","🇷🇴"],["Russia","俄罗斯","🇷🇺"],["Rwanda","卢旺达","🇷🇼"],["Saint Kitts and Nevis","圣基茨和尼维斯","🇰🇳"],["Saint Lucia","圣卢西亚","🇱🇨"],["Saint Vincent and the Grenadines","圣文森特和格林纳丁斯","🇻🇨"],["Samoa","萨摩亚","🇼🇸"],["San Marino","圣马力诺","🇸🇲"],["Sao Tome and Principe","圣多美和普林西比","🇸🇹"],["Saudi Arabia","沙特阿拉伯","🇸🇦"],["Senegal","塞内加尔","🇸🇳"],["Serbia","塞尔维亚","🇷🇸"],["Seychelles","塞舌尔","🇸🇨"],["Sierra Leone","塞拉利昂","🇸🇱"],["Singapore","新加坡","🇸🇬"],["Slovakia","斯洛伐克","🇸🇰"],["Slovenia","斯洛文尼亚","🇸🇮"],["Solomon Islands","所罗门群岛","🇸🇧"],["Somalia","索马里","🇸🇴"],["South Africa","南非","🇿🇦"],["South Sudan","南苏丹","🇸🇸"],["Spain","西班牙","🇪🇸"],["Sri Lanka","斯里兰卡","🇱🇰"],["Sudan","苏丹","🇸🇩"],["Suriname","苏里南","🇸🇷"],["Sweden","瑞典","🇸🇪"],["Switzerland","瑞士","🇨🇭"],["Syria","叙利亚","🇸🇾"],["Taiwan","台湾","🇹🇼"],["Tajikistan","塔吉克斯坦","🇹🇯"],["Tanzania","坦桑尼亚","🇹🇿"],["Thailand","泰国","🇹🇭"],["Timor-Leste","东帝汶","🇹🇱"],["Togo","多哥","🇹🇬"],["Tonga","汤加","🇹🇴"],["Trinidad and Tobago","特立尼达和多巴哥","🇹🇹"],["Tunisia","突尼斯","🇹🇳"],["Turkey","土耳其","🇹🇷"],["Turkmenistan","土库曼斯坦","🇹🇲"],["Tuvalu","图瓦卢","🇹🇻"],["Uganda","乌干达","🇺🇬"],["Ukraine","乌克兰","🇺🇦"],["United Arab Emirates","阿联酋","🇦🇪"],["United Kingdom","英国","🇬🇧"],["United States","美国","🇺🇸"],["Uruguay","乌拉圭","🇺🇾"],["Uzbekistan","乌兹别克斯坦","🇺🇿"],["Vanuatu","瓦努阿图","🇻🇺"],["Vatican City","梵蒂冈","🇻🇦"],["Venezuela","委内瑞拉","🇻🇪"],["Vietnam","越南","🇻🇳"],["Yemen","也门","🇾🇪"],["Zambia","赞比亚","🇿🇲"],["Zimbabwe","津巴布韦","🇿🇼"]];
+
+/* STATE */
+let remaining=JSON.parse(localStorage.getItem("remainingCountries"))||[...countries];
+let completed=JSON.parse(localStorage.getItem("completedCountries"))||[];
+let current=JSON.parse(localStorage.getItem("currentCountry"))||null;
+
+/* FUNCTIONS */
+function generateCountry(){
+  if(remaining.length===0) return;
+  const i=Math.floor(Math.random()*remaining.length);
+  current=remaining[i]; localStorage.setItem("currentCountry",JSON.stringify(current));
+  document.getElementById("flag").textContent=current[2];
+  document.getElementById("country").textContent=current[0];
+  document.getElementById("subtitle").textContent=current[1];
+  document.getElementById("doneBtn").disabled=false;
+  updateCaption();
+}
+
+function completeCountry(){
+  if(!current) return;
+  const name=document.getElementById("restaurantName").value||"Unknown";
+  const addr=document.getElementById("restaurantAddr").value||"";
+  completed.push({...current,restaurant:name,address:addr});
+  remaining=remaining.filter(c=>c[0]!==current[0]);
+  localStorage.setItem("completedCountries",JSON.stringify(completed));
+  localStorage.setItem("remainingCountries",JSON.stringify(remaining));
+  localStorage.removeItem("currentCountry");
+  current=null;
+  document.getElementById("doneBtn").disabled=true;
+  document.getElementById("restaurantName").value="";
+  document.getElementById("restaurantAddr").value="";
+  updateLog();
+  updateMeta();
+  document.getElementById("flag").textContent="🎲";
+  document.getElementById("country").textContent=lang==="en"?"Tap to start":"点击开始";
+  document.getElementById("subtitle").textContent=lang==="en"?"One country per week":"每周一个国家";
+  updateCaption();
+}
+
+function undoLast(){
+  if(completed.length===0) return;
+  const last=completed.pop();
+  remaining.push([last[0],last[1],last[2]]);
+  localStorage.setItem("completedCountries",JSON.stringify(completed));
+  localStorage.setItem("remainingCountries",JSON.stringify(remaining));
+  updateLog();
+  updateMeta();
+}
+
+function updateLog(){
+  const log=document.getElementById("log");
+  log.innerHTML="";
+  completed.forEach((c,i)=>{
+    let entry=document.createElement("div");
+    entry.className="log-entry";
+    entry.innerHTML=`${i+1}. ${c[2]} ${c[0]} / ${c[1]} — ${c.restaurant} <a href="https://www.google.com/maps/search/${encodeURIComponent(c.restaurant+' '+c.address)}" target="_blank">Map</a>`;
+    log.appendChild(entry);
+  });
+}
+
+function updateMeta(){
+  document.getElementById("week").textContent=`Week ${completed.length}`;
+  document.getElementById("progress").textContent=`${completed.length} / ${countries.length}`;
+}
+
+function resetAll(){
+  if(!confirm(lang==="en"?"Reset everything?":"确定要重置吗？")) return;
+  remaining=[...countries]; completed=[]; current=null;
+  localStorage.removeItem("completedCountries");
+  localStorage.removeItem("remainingCountries");
+  localStorage.removeItem("currentCountry");
+  document.getElementById("flag").textContent="🎲";
+  document.getElementById("country").textContent=lang==="en"?"Tap to start":"点击开始";
+  document.getElementById("subtitle").textContent=lang==="en"?"One country per week":"每周一个国家";
+  document.getElementById("restaurantName").value="";
+  document.getElementById("restaurantAddr").value="";
+  updateLog(); updateMeta(); updateCaption();
+}
+
+function updateCaption(){
+  let cap="";
+  if(current){
+    cap=`${current[2]} ${current[0]} / ${current[1]}\n${document.getElementById("restaurantName").value||"Restaurant Name"}\n${document.getElementById("restaurantAddr").value||"Address"}`;
+  } else {
+    cap=lang==="en"?"Your bilingual caption will appear here.":"双语标题将显示在这里。";
+  }
+  document.getElementById("caption").textContent=cap;
+}
+
+function generateShareCard(){
+  if(!current && completed.length===0){
+    alert(lang==="en"?"No country selected yet":"还没有选择国家");
+    return;
+  }
+  let card=document.getElementById("shareCardPreview");
+  let lastEntry=current?current:completed[completed.length-1];
+  let restaurantName=document.getElementById("restaurantName").value||"Restaurant Name";
+  let addr=document.getElementById("restaurantAddr").value||"Address";
+  card.innerHTML=`<div style="background:#fff0f4;padding:12px;border-radius:16px;">
+  <div style="font-size:36px;text-align:center;">${lastEntry[2]}</div>
+  <div style="font-weight:700;text-align:center;font-size:24px;">${lastEntry[0]} / ${lastEntry[1]}</div>
+  <div style="margin-top:6px;text-align:center;">${restaurantName}<br>${addr}</div>
+  <a href="https://www.google.com/maps/search/${encodeURIComponent(restaurantName+' '+addr)}" target="_blank" style="display:block;margin-top:6px;text-align:center;color:#ff4f87;text-decoration:underline;">Map</a>
+  </div>`;
+}
+
+/* INIT */
+applyLang();
+updateLog();
+updateMeta();
+</script>
+</body>
+</html>
